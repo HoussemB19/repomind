@@ -7,7 +7,10 @@ import os
 from openai import OpenAI
 from dotenv import load_dotenv
 
-from indexing import get_model, get_collection
+try:
+    from .indexing import get_model, get_collection
+except ImportError:
+    from indexing import get_model, get_collection
 
 load_dotenv()
 
