@@ -15,8 +15,8 @@ except ImportError:
 load_dotenv()
 
 client = OpenAI(
-    base_url="https://lightning.ai/api/v1",
-    api_key=os.getenv("LIGHTNING_API_KEY"),
+    base_url="https://openrouter.ai/api/v1",
+    api_key=os.getenv("OPENROUTER_API_KEY"),
 )
 
 
@@ -35,12 +35,17 @@ Question: {question}
 Answer:"""
 
 
-def ask(question: str, top_k: int = 3) -> str:
+def ask(question: str, repo_url: str | None = None, top_k: int = 3) -> str:
     model = get_model()
     collection = get_collection()
 
     question_embedding = model.encode([question]).tolist()
-    results = collection.query(query_embeddings=question_embedding, n_results=top_k)
+    where_filter = {"repo": repo_url} if repo_url else None
+    results = collection.query(
+        query_embeddings=question_embedding,
+        n_results=top_k,
+        where=where_filter,
+    )
 
     chunks = [
         {
@@ -51,11 +56,13 @@ def ask(question: str, top_k: int = 3) -> str:
         }
         for i in range(len(results["ids"][0]))
     ]
-
+    print("\n=== RETRIEVED CHUNKS ===")
+    for c in chunks:
+         print(f"\n{c['file']}:{c['start_line']}-{c['end_line']}")
     prompt = build_prompt(question, chunks)
 
     response = client.chat.completions.create(
-        model="lightning-ai/deepseek-v4-pro",
+        model="openai/gpt-oss-20b",
         messages=[{"role": "user", "content": prompt}],
         temperature=1.0,
     )

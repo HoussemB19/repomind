@@ -23,7 +23,7 @@ def get_collection(collection_name: str = "repomind_chunks"):
     return client.get_or_create_collection(name=collection_name)
 
 
-def index_chunks(chunks: list[dict]):
+def index_chunks(chunks: list[dict], repo_url: str = "unknown"):
     """Embed a list of code chunks and store them in ChromaDB."""
     if not chunks:
         return
@@ -34,15 +34,15 @@ def index_chunks(chunks: list[dict]):
     texts = [c["code"] for c in chunks]
     embeddings = model.encode(texts).tolist()
 
-    ids = [f"{c['file']}::{c['name']}::{c['start_line']}" for c in chunks]
+    ids = [f"{repo_url}::{c['file']}::{c['name']}::{c['start_line']}" for c in chunks]
     metadatas = [
         {"file": c["file"], "name": c["name"], "type": c["type"],
-         "start_line": c["start_line"], "end_line": c["end_line"]}
+         "start_line": c["start_line"], "end_line": c["end_line"], "repo": repo_url}
         for c in chunks
     ]
 
     collection.add(ids=ids, embeddings=embeddings, documents=texts, metadatas=metadatas)
-    print(f"Indexed {len(chunks)} chunks.")
+    print(f"Indexed {len(chunks)} chunks for {repo_url}.")
 
 
 if __name__ == "__main__":

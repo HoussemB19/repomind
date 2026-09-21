@@ -26,6 +26,7 @@ class IndexRequest(BaseModel):
 
 class QueryRequest(BaseModel):
     question: str
+    repo_url: str | None = None
 
 
 @app.get("/health")
@@ -41,10 +42,10 @@ def index_repo(request: IndexRequest):
 
     total_chunks = 0
     for file in files:
-        if file.suffix == ".py":
-            chunks = chunk_python_file(file)
-            index_chunks(chunks)
-            total_chunks += len(chunks)
+            if file.suffix == ".py":
+                chunks = chunk_python_file(file)
+                index_chunks(chunks, repo_url=request.repo_url)
+                total_chunks += len(chunks)
 
     cleanup(repo_path)
     return {"repo": request.repo_url, "files_scanned": len(files), "chunks_indexed": total_chunks}
@@ -53,5 +54,5 @@ def index_repo(request: IndexRequest):
 @app.post("/query")
 def query_repo(request: QueryRequest):
     """Ask a natural language question about the indexed code."""
-    answer = ask(request.question)
+    answer = ask(request.question, repo_url=request.repo_url)
     return {"question": request.question, "answer": answer}
