@@ -3,7 +3,27 @@ services:
     build: .
     ports:
       - "8000:8000"
+    environment:
+      - CHROMA_DATA_PATH=chroma_data
     env_file:
       - .env
     volumes:
       - ./chroma_data:/app/chroma_data
+      - hf_cache:/root/.cache/huggingface
+
+  mcp:
+    build: .
+    profiles: ["mcp-http"]
+    command: ["python", "app/mcp_server.py"]
+    ports:
+      - "8001:8001"
+    environment:
+      - MCP_TRANSPORT=streamable-http
+    env_file:
+      - .env
+    volumes:
+      - ./chroma_data:/app/chroma_data
+      - hf_cache:/root/.cache/huggingface
+
+volumes:
+  hf_cache:

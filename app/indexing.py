@@ -3,14 +3,14 @@ RepoMind - Phase 1 (suite): embed chunks and store them in ChromaDB.
 """
 from __future__ import annotations
 
+import os
+os.environ.setdefault("HF_HUB_OFFLINE", "1")
+from pathlib import Path
 import chromadb
 from sentence_transformers import SentenceTransformer
-
 _model = None
 
-
 def get_model() -> SentenceTransformer:
-    """Load the embedding model once and reuse it (it's slow to load)."""
     global _model
     if _model is None:
         _model = SentenceTransformer("all-MiniLM-L6-v2")
@@ -19,7 +19,11 @@ def get_model() -> SentenceTransformer:
 
 def get_collection(collection_name: str = "repomind_chunks"):
     """Get or create a ChromaDB collection stored on disk."""
-    client = chromadb.PersistentClient(path="chroma_data")
+    project_root = Path(__file__).resolve().parent.parent
+    chroma_path = Path(os.getenv("CHROMA_DATA_PATH", "chroma_data"))
+    if not chroma_path.is_absolute():
+        chroma_path = project_root / chroma_path
+    client = chromadb.PersistentClient(path=str(chroma_path))
     return client.get_or_create_collection(name=collection_name)
 
 
