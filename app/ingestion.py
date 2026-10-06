@@ -10,7 +10,8 @@ from pathlib import Path
 import git
 
 # Folders and file extensions we don't want to index
-IGNORED_DIRS = {".git", "node_modules", "__pycache__", ".venv", "venv", "dist", "build"}
+IGNORED_DIRS = {".git", "node_modules", "__pycache__", ".venv", "venv", "dist", "build",
+                "tests", "test", "examples", "docs"}
 USEFUL_EXTENSIONS = {".py", ".md", ".txt", ".js", ".ts", ".json", ".yaml", ".yml"}
 
 

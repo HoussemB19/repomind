@@ -18,12 +18,16 @@ def get_model() -> SentenceTransformer:
 
 
 def get_collection(collection_name: str = "repomind_chunks"):
-    """Get or create a ChromaDB collection stored on disk."""
-    project_root = Path(__file__).resolve().parent.parent
-    chroma_path = Path(os.getenv("CHROMA_DATA_PATH", "chroma_data"))
-    if not chroma_path.is_absolute():
-        chroma_path = project_root / chroma_path
-    client = chromadb.PersistentClient(path=str(chroma_path))
+    """Get or create a ChromaDB collection (server mode if CHROMA_HOST is set)."""
+    host = os.getenv("CHROMA_HOST")
+    if host:
+        client = chromadb.HttpClient(host=host, port=int(os.getenv("CHROMA_PORT", "8000")))
+    else:
+        project_root = Path(__file__).resolve().parent.parent
+        chroma_path = Path(os.getenv("CHROMA_DATA_PATH", "chroma_data"))
+        if not chroma_path.is_absolute():
+            chroma_path = project_root / chroma_path
+        client = chromadb.PersistentClient(path=str(chroma_path))
     return client.get_or_create_collection(name=collection_name)
 
 
@@ -36,7 +40,8 @@ def index_chunks(chunks: list[dict], repo_url: str = "unknown"):
     collection = get_collection()
 
     texts = [c["code"] for c in chunks]
-    embeddings = model.encode(texts).tolist()
+    embed_inputs = [f"# file: {c['file']}\n# {c['type']}: {c['name']}\n{c['code']}" for c in chunks]
+    embeddings = model.encode(embed_inputs).tolist()
 
     ids = [f"{repo_url}::{c['file']}::{c['name']}::{c['start_line']}" for c in chunks]
     metadatas = [
@@ -48,7 +53,9 @@ def index_chunks(chunks: list[dict], repo_url: str = "unknown"):
     collection.add(ids=ids, embeddings=embeddings, documents=texts, metadatas=metadatas)
     print(f"Indexed {len(chunks)} chunks for {repo_url}.")
 
-
+def clear_repo(repo_url: str) -> None:
+    """Delete all chunks previously indexed for this repo."""
+    get_collection().delete(where={"repo": repo_url})
 if __name__ == "__main__":
     from pathlib import Path
     from chunking import chunk_python_file

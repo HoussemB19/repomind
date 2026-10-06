@@ -9,12 +9,12 @@ from pydantic import BaseModel
 try:
     from .ingestion import clone_repo, list_useful_files, cleanup
     from .chunking import chunk_python_file
-    from .indexing import index_chunks
+    from .indexing import index_chunks, clear_repo
     from .generation import ask
 except ImportError:
     from ingestion import clone_repo, list_useful_files, cleanup
     from chunking import chunk_python_file
-    from indexing import index_chunks
+    from indexing import index_chunks, clear_repo
     from generation import ask
 
 app = FastAPI(title="RepoMind", version="0.3.0")
@@ -40,12 +40,14 @@ def index_repo(request: IndexRequest):
     repo_path = clone_repo(request.repo_url)
     files = list_useful_files(repo_path)
 
-    total_chunks = 0
+    all_chunks = []
     for file in files:
-            if file.suffix == ".py":
-                chunks = chunk_python_file(file)
-                index_chunks(chunks, repo_url=request.repo_url)
-                total_chunks += len(chunks)
+        if file.suffix == ".py":
+            all_chunks.extend(chunk_python_file(file, root=repo_path))
+    clear_repo(request.repo_url)
+    for i in range(0, len(all_chunks), 256):
+        index_chunks(all_chunks[i:i + 256], repo_url=repo_url)
+    total_chunks = len(all_chunks)
 
     cleanup(repo_path)
     return {"repo": request.repo_url, "files_scanned": len(files), "chunks_indexed": total_chunks}

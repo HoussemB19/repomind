@@ -7,7 +7,7 @@ import ast
 from pathlib import Path
 
 
-def chunk_python_file(file_path: Path) -> list[dict]:
+def chunk_python_file(file_path: Path, root: Path | None = None) -> list[dict]:
     """Split a .py file into chunks, one per function or class."""
     source = file_path.read_text(encoding="utf-8", errors="ignore")
     chunks = []
@@ -25,7 +25,7 @@ def chunk_python_file(file_path: Path) -> list[dict]:
             end = node.end_lineno
             code = "\n".join(lines[start:end])
             chunks.append({
-                "file": str(file_path),
+                "file": file_path.relative_to(root).as_posix() if root else str(file_path),
                 "name": node.name,
                 "type": type(node).__name__,
                 "start_line": node.lineno,

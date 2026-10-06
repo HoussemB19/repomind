@@ -11,7 +11,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir --timeout 400 --retries 5 torch --index-url https://download.pytorch.org/whl/cpu
 RUN pip install --no-cache-dir --timeout 400 --retries 5 -r requirements.txt
 
-COPY hf_model_cache/ /root/.cache/huggingface/hub/
+RUN python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('all-MiniLM-L6-v2')"
 ENV HF_HUB_OFFLINE=1
 
 COPY app/ ./app/

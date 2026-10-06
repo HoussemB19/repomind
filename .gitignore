@@ -4,3 +4,4 @@ __pycache__/
 .env
 hf_model_cache/ 
 chroma_data/
+chroma_data_local/

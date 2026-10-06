@@ -1,29 +1,45 @@
 services:
+  chroma:
+    image: chromadb/chroma:1.5.9
+    volumes:
+      - chroma_data:/data
+
   api:
+    image: repomind-api
     build: .
     ports:
       - "8000:8000"
-    environment:
-      - CHROMA_DATA_PATH=chroma_data
     env_file:
       - .env
+    environment:
+      - CHROMA_HOST=chroma
     volumes:
-      - ./chroma_data:/app/chroma_data
       - hf_cache:/root/.cache/huggingface
+    depends_on:
+      - chroma
 
   mcp:
+    image: repomind-api
     build: .
     profiles: ["mcp-http"]
     command: ["python", "app/mcp_server.py"]
     ports:
       - "8001:8001"
-    environment:
-      - MCP_TRANSPORT=streamable-http
     env_file:
       - .env
+    environment:
+      - MCP_TRANSPORT=streamable-http
+      - CHROMA_HOST=chroma
     volumes:
-      - ./chroma_data:/app/chroma_data
       - hf_cache:/root/.cache/huggingface
+    depends_on:
+      - chroma
 
 volumes:
+  chroma_data:
+    name: repomind_chroma
   hf_cache:
+
+networks:
+  default:
+    name: repomind_net

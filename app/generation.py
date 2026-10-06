@@ -2,7 +2,7 @@
 RepoMind - Phase 2: generate an answer using DeepSeek V4 Pro via Lightning AI.
 """
 from __future__ import annotations
-
+import re
 import os
 from openai import OpenAI
 from dotenv import load_dotenv
@@ -22,8 +22,14 @@ client = OpenAI(
 
 def build_prompt(question: str, chunks: list[dict]) -> str:
     """Build a prompt that forces the model to cite file:line."""
+    def numbered(c):
+        return "\n".join(
+            f"{c['start_line'] + i}: {line}"
+            for i, line in enumerate(c["code"].splitlines())
+        )
+
     context = "\n\n".join(
-        f"File: {c['file']} (lines {c['start_line']}-{c['end_line']})\n```python\n{c['code']}\n```"
+        f"File: {c['file']} (lines {c['start_line']}-{c['end_line']})\n```python\n{numbered(c)}\n```"
         for c in chunks
     )
     return f"""You are a code assistant. Answer the question using ONLY the code snippets below.
@@ -40,10 +46,27 @@ def ask(question: str, repo_url: str | None = None, top_k: int = 3) -> str:
     collection = get_collection()
 
     question_embedding = model.encode([question]).tolist()
+
     where_filter = {"repo": repo_url} if repo_url else None
+    n_results = top_k
+
+    if repo_url:
+        stored = collection.get(where={"repo": repo_url}, include=["metadatas"])
+        if not stored["ids"]:
+            return f"{repo_url} is not indexed yet. Call index_repo first."
+        q = question.lower()
+        named = {
+            m["file"]
+            for m in stored["metadatas"]
+            if re.search(r"(?<![\w.])" + re.escape(m["file"].split("/")[-1].lower()) + r"(?![\w])", q)
+        }
+        if named:
+            where_filter = {"$and": [{"repo": repo_url}, {"file": {"$in": list(named)}}]}
+            n_results = min(15, sum(1 for m in stored["metadatas"] if m["file"] in named))
+
     results = collection.query(
         query_embeddings=question_embedding,
-        n_results=top_k,
+        n_results=n_results,
         where=where_filter,
     )
 
@@ -56,9 +79,6 @@ def ask(question: str, repo_url: str | None = None, top_k: int = 3) -> str:
         }
         for i in range(len(results["ids"][0]))
     ]
-    print("\n=== RETRIEVED CHUNKS ===")
-    for c in chunks:
-         print(f"\n{c['file']}:{c['start_line']}-{c['end_line']}")
     prompt = build_prompt(question, chunks)
 
     response = client.chat.completions.create(
