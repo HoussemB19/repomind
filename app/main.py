@@ -37,20 +37,23 @@ def health():
 @app.post("/index")
 def index_repo(request: IndexRequest):
     """Clone a GitHub repo, chunk its Python files, and index them."""
-    repo_path = clone_repo(request.repo_url)
-    files = list_useful_files(repo_path)
+    repo_path = None
+    try:
+        repo_path = clone_repo(request.repo_url)
+        files = list_useful_files(repo_path)
 
-    all_chunks = []
-    for file in files:
-        if file.suffix == ".py":
+        all_chunks = []
+        for file in files:
             all_chunks.extend(chunk_python_file(file, root=repo_path))
-    clear_repo(request.repo_url)
-    for i in range(0, len(all_chunks), 256):
-        index_chunks(all_chunks[i:i + 256], repo_url=request.repo_url)
-    total_chunks = len(all_chunks)
+        clear_repo(request.repo_url)
+        for i in range(0, len(all_chunks), 256):
+            index_chunks(all_chunks[i:i + 256], repo_url=request.repo_url)
+        total_chunks = len(all_chunks)
 
-    cleanup(repo_path)
-    return {"repo": request.repo_url, "files_scanned": len(files), "chunks_indexed": total_chunks}
+        return {"repo": request.repo_url, "files_scanned": len(files), "chunks_indexed": total_chunks}
+    finally:
+        if repo_path is not None:
+            cleanup(repo_path)
 
 
 @app.post("/query")

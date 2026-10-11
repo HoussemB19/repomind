@@ -28,20 +28,23 @@ def index_repo(repo_url: str) -> str:
         from chunking import chunk_python_file
         from indexing import index_chunks, clear_repo
 
-    repo_path = clone_repo(repo_url)
-    files = list_useful_files(repo_path)
+    repo_path = None
+    try:
+        repo_path = clone_repo(repo_url)
+        files = list_useful_files(repo_path)
 
-    all_chunks = []
-    for file in files:
-        if file.suffix == ".py":
+        all_chunks = []
+        for file in files:
             all_chunks.extend(chunk_python_file(file, root=repo_path))
-    clear_repo(repo_url)
-    for i in range(0, len(all_chunks), 256):
-        index_chunks(all_chunks[i:i + 256], repo_url=repo_url)
-    total_chunks = len(all_chunks)
+        clear_repo(repo_url)
+        for i in range(0, len(all_chunks), 256):
+            index_chunks(all_chunks[i:i + 256], repo_url=repo_url)
+        total_chunks = len(all_chunks)
 
-    cleanup(repo_path)
-    return f"Indexed {total_chunks} chunks from {len(files)} files in {repo_url}."
+        return f"Indexed {total_chunks} chunks from {len(files)} files in {repo_url}."
+    finally:
+        if repo_path is not None:
+            cleanup(repo_path)
 
 
 @mcp.tool()

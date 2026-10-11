@@ -41,6 +41,9 @@ Answer:"""
 
 
 def ask(question: str, repo_url: str | None = None, top_k: int = 5) -> str:
+    if top_k <= 0:
+        raise ValueError("top_k must be greater than zero")
+
     model = get_model()
     collection = get_collection()
 
@@ -68,6 +71,11 @@ def ask(question: str, repo_url: str | None = None, top_k: int = 5) -> str:
         n_results=n_results,
         where=where_filter,
     )
+
+    if not results.get("ids") or not results["ids"] or not results["ids"][0]:
+        if repo_url:
+            return f"No indexed code chunks were found for {repo_url}."
+        return "No indexed code chunks were found. Index a repository first."
 
     chunks = [
         {

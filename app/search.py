@@ -3,7 +3,10 @@ RepoMind - Phase 1 (final part): query ChromaDB with a natural language question
 """
 from __future__ import annotations
 
-from indexing import get_model, get_collection
+try:
+    from .indexing import get_model, get_collection
+except ImportError:
+    from indexing import get_model, get_collection
 
 
 def search(question: str, top_k: int = 3):
