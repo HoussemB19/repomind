@@ -37,7 +37,41 @@ Always cite the exact file and line number in your answer, like `file.py:42`.
 {context}
 
 Question: {question}
-Answer:"""
+    Answer:"""
+
+
+def validate_citations(answer: str, chunks: list[dict]) -> str:
+    """Append a warning when the model cites lines outside retrieved chunks."""
+    citation_pattern = re.compile(
+        r"(?P<file>[A-Za-z0-9_./\\-]+\.py):(?P<start>\d+)"
+        r"(?:-(?P<end>\d+))?"
+    )
+    ranges = {}
+    for chunk in chunks:
+        ranges.setdefault(chunk["file"], []).append(
+            (chunk["start_line"], chunk["end_line"])
+        )
+
+    invalid = []
+    normalized_answer = answer.replace("\\_", "_")
+    for match in citation_pattern.finditer(normalized_answer):
+        file = match.group("file")
+        start = int(match.group("start"))
+        end = int(match.group("end") or start)
+        if not any(
+            file == known_file and start >= first and end <= last
+            for known_file, file_ranges in ranges.items()
+            for first, last in file_ranges
+        ):
+            invalid.append(match.group(0))
+
+    if invalid:
+        unique_invalid = ", ".join(dict.fromkeys(invalid))
+        return (
+            f"{answer}\n\n[Warning: unverified citation(s): "
+            f"{unique_invalid}]"
+        )
+    return answer
 
 
 def ask(question: str, repo_url: str | None = None, top_k: int = 5) -> str:
@@ -93,7 +127,8 @@ def ask(question: str, repo_url: str | None = None, top_k: int = 5) -> str:
         messages=[{"role": "user", "content": prompt}],
         temperature=0.0,
     )
-    return response.choices[0].message.content
+    answer = response.choices[0].message.content or ""
+    return validate_citations(answer, chunks)
 
 
 if __name__ == "__main__":
