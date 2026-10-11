@@ -55,6 +55,20 @@ Question: {question}
 
 def add_missing_file_paths(answer: str, chunks: list[dict]) -> str:
     """Add file paths to bare line references when the source range is unambiguous."""
+    explicit_pattern = re.compile(
+        r"\blines?[\s\u00a0\u202f]+(?P<start>\d+)"
+        r"(?:[\-\u2010\u2011\u2012\u2013\u2212](?P<end>\d+))?"
+        r"\s+of\s+[`*_]*(?P<file>[A-Za-z0-9_./\\-]+\.py)[`*_]*"
+    )
+
+    def replace_explicit(match):
+        start = match.group("start")
+        end = match.group("end")
+        file = match.group("file")
+        return f"{file}:{start}-{end}" if end else f"{file}:{start}"
+
+    answer = explicit_pattern.sub(replace_explicit, answer)
+
     bare_pattern = re.compile(
         r"\blines?[\s\u00a0\u202f]+(?P<start>\d+)"
         r"(?:[\-\u2010\u2011\u2012\u2013\u2212](?P<end>\d+))?"

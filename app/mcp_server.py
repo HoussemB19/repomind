@@ -52,7 +52,12 @@ def ask_repo(repo_url: str, question: str) -> str:
     """Answer a question about the code of a GitHub repository that was already
     indexed with index_repo. Use this for any question about how a repository's
     code works, even when the user only gives a GitHub URL. Do not clone or read
-    the repository yourself. The answer cites file and line."""
+    the repository yourself.
+
+    Return the RepoMind answer faithfully. Preserve every exact file-and-line
+    citation in the response. Do not summarize, paraphrase, or remove citations.
+    Every factual claim must retain a citation in the format
+    path/to/file.py:42 or path/to/file.py:42-48."""
     try:
         from .generation import ask
     except ImportError:
