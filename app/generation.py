@@ -3,7 +3,7 @@
 from __future__ import annotations
 import re
 import os
-from openai import OpenAI
+from openai import APITimeoutError, OpenAI
 from dotenv import load_dotenv
 
 try:
@@ -16,6 +16,8 @@ load_dotenv()
 client = OpenAI(
     base_url="https://openrouter.ai/api/v1",
     api_key=os.getenv("OPENROUTER_API_KEY"),
+    timeout=90.0,
+    max_retries=1,
 )
 
 
@@ -156,11 +158,14 @@ def ask(question: str, repo_url: str | None = None, top_k: int = 5) -> str:
     ]
     prompt = build_prompt(question, chunks)
 
-    response = client.chat.completions.create(
-        model="openai/gpt-oss-20b",
-        messages=[{"role": "user", "content": prompt}],
-        temperature=0.0,
-    )
+    try:
+        response = client.chat.completions.create(
+            model="openai/gpt-oss-20b",
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.0,
+        )
+    except APITimeoutError:
+        return "The LLM request timed out after 90 seconds. Please try again."
     answer = response.choices[0].message.content or ""
     answer = add_missing_file_paths(answer, chunks)
     return validate_citations(answer, chunks)
