@@ -1,6 +1,5 @@
-"""
-RepoMind - Phase 2: generate an answer using DeepSeek V4 Pro via Lightning AI.
-"""
+"""RepoMind - Phase 2: generate answers using an LLM."""
+
 from __future__ import annotations
 import re
 import os
@@ -41,7 +40,7 @@ Question: {question}
 Answer:"""
 
 
-def ask(question: str, repo_url: str | None = None, top_k: int = 3) -> str:
+def ask(question: str, repo_url: str | None = None, top_k: int = 5) -> str:
     model = get_model()
     collection = get_collection()
 
@@ -84,7 +83,7 @@ def ask(question: str, repo_url: str | None = None, top_k: int = 3) -> str:
     response = client.chat.completions.create(
         model="openai/gpt-oss-20b",
         messages=[{"role": "user", "content": prompt}],
-        temperature=1.0,
+        temperature=0.0,
     )
     return response.choices[0].message.content
 

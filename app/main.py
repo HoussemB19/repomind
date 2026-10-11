@@ -46,7 +46,7 @@ def index_repo(request: IndexRequest):
             all_chunks.extend(chunk_python_file(file, root=repo_path))
     clear_repo(request.repo_url)
     for i in range(0, len(all_chunks), 256):
-        index_chunks(all_chunks[i:i + 256], repo_url=repo_url)
+        index_chunks(all_chunks[i:i + 256], repo_url=request.repo_url)
     total_chunks = len(all_chunks)
 
     cleanup(repo_path)
