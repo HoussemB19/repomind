@@ -37,7 +37,11 @@ immediately after the claim, like `file.py:42`. Do not cite a whole enclosing fu
 or unrelated import lines when a more specific line contains the evidence. Use a line
 range only when every line in the range supports the same claim. If the snippets do not
 support a claim, say that the information is not present instead of guessing. When useful,
-include a short code excerpt alongside the citation so the evidence is visible.
+  include a short code excerpt alongside the citation so the evidence is visible.
+Describe behavior from the actual function body, not from a function name or guess. Distinguish
+side effects such as deleting database records, deleting files, or cleaning temporary resources
+only when the cited code directly shows that behavior. Do not assume fixed file paths, function
+names, frameworks, or repository structure; infer them from the supplied snippets.
 
 {context}
 
