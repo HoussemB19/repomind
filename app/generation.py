@@ -35,8 +35,10 @@ def build_prompt(question: str, chunks: list[dict]) -> str:
 For every factual claim, cite the exact source line(s) that directly support that claim,
 immediately after the claim, like `file.py:42`. Do not cite a whole enclosing function
 or unrelated import lines when a more specific line contains the evidence. Use a line
-range only when every line in the range supports the same claim. If the snippets do not
-support a claim, say that the information is not present instead of guessing. When useful,
+  range only when every line in the range supports the same claim. If the snippets do not
+  support a claim, say that the information is not present instead of guessing. A citation
+  without a file path, such as `lines 10-12`, is invalid; always use `path/to/file.py:10-12`.
+  When useful,
   include a short code excerpt alongside the citation so the evidence is visible.
 Describe behavior from the actual function body, not from a function name or guess. Distinguish
 side effects such as deleting database records, deleting files, or cleaning temporary resources
@@ -47,6 +49,29 @@ names, frameworks, or repository structure; infer them from the supplied snippet
 
 Question: {question}
     Answer:"""
+
+
+def add_missing_file_paths(answer: str, chunks: list[dict]) -> str:
+    """Add file paths to bare line references when the source range is unambiguous."""
+    bare_pattern = re.compile(
+        r"\blines?[\s\u00a0\u202f]+(?P<start>\d+)"
+        r"(?:[\-\u2010\u2011\u2012\u2013\u2212](?P<end>\d+))?"
+    )
+
+    def replace(match):
+        start = int(match.group("start"))
+        end = int(match.group("end") or start)
+        candidates = {
+            chunk["file"]
+            for chunk in chunks
+            if start >= chunk["start_line"] and end <= chunk["end_line"]
+        }
+        if len(candidates) == 1:
+            file = next(iter(candidates))
+            return f"{file}:{start}-{end}" if end != start else f"{file}:{start}"
+        return match.group(0)
+
+    return bare_pattern.sub(replace, answer)
 
 
 def validate_citations(answer: str, chunks: list[dict]) -> str:
@@ -137,6 +162,7 @@ def ask(question: str, repo_url: str | None = None, top_k: int = 5) -> str:
         temperature=0.0,
     )
     answer = response.choices[0].message.content or ""
+    answer = add_missing_file_paths(answer, chunks)
     return validate_citations(answer, chunks)
 
 
