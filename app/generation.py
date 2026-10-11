@@ -32,7 +32,12 @@ def build_prompt(question: str, chunks: list[dict]) -> str:
         for c in chunks
     )
     return f"""You are a code assistant. Answer the question using ONLY the code snippets below.
-Always cite the exact file and line number in your answer, like `file.py:42`.
+For every factual claim, cite the exact source line(s) that directly support that claim,
+immediately after the claim, like `file.py:42`. Do not cite a whole enclosing function
+or unrelated import lines when a more specific line contains the evidence. Use a line
+range only when every line in the range supports the same claim. If the snippets do not
+support a claim, say that the information is not present instead of guessing. When useful,
+include a short code excerpt alongside the citation so the evidence is visible.
 
 {context}
 
