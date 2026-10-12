@@ -1,4 +1,4 @@
-from app.generation import add_missing_file_paths, validate_citations
+from app.citations import add_missing_file_paths, validate_citations
 
 
 def test_bare_line_reference_gets_an_unambiguous_file_path():
