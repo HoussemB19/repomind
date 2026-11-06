@@ -20,7 +20,12 @@ USEFUL_EXTENSIONS = {".py"}
 def clone_repo(repo_url: str) -> Path:
     """Clone a GitHub repo into a temporary folder and return its path."""
     tmp_dir = Path(tempfile.mkdtemp(prefix="repomind_"))
-    git.Repo.clone_from(repo_url, tmp_dir, depth=1)
+    try:
+        git.Repo.clone_from(repo_url, tmp_dir, depth=1)
+    except Exception:
+        # A failed clone must not leave a partial repository in the temp folder.
+        shutil.rmtree(tmp_dir, ignore_errors=True)
+        raise
     return tmp_dir
 
 def list_useful_files(repo_path: Path) -> list[Path]:

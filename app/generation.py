@@ -15,10 +15,13 @@ except ImportError:
 
 load_dotenv()
 
+MODEL_NAME = os.getenv("OPENROUTER_MODEL", "openai/gpt-oss-20b")
+LLM_TIMEOUT = float(os.getenv("LLM_TIMEOUT", "90"))
+
 client = OpenAI(
     base_url="https://openrouter.ai/api/v1",
     api_key=os.getenv("OPENROUTER_API_KEY"),
-    timeout=90.0,
+    timeout=LLM_TIMEOUT,
     max_retries=1,
 )
 
@@ -105,12 +108,12 @@ def ask(question: str, repo_url: str | None = None, top_k: int = 5) -> str:
 
     try:
         response = client.chat.completions.create(
-            model="openai/gpt-oss-20b",
+            model=MODEL_NAME,
             messages=[{"role": "user", "content": prompt}],
             temperature=0.0,
         )
     except APITimeoutError:
-        return "The LLM request timed out after 90 seconds. Please try again."
+        return f"The LLM request timed out after {LLM_TIMEOUT:g} seconds. Please try again."
     answer = response.choices[0].message.content or ""
     answer = add_missing_file_paths(answer, chunks)
     return validate_citations(answer, chunks)

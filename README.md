@@ -25,9 +25,12 @@ Create `.env` from `.env.example` and set your API key:
 
 ```env
 OPENROUTER_API_KEY=your_key_here
+OPENROUTER_MODEL=openai/gpt-oss-20b
+LLM_TIMEOUT=90
 ```
 
 Never commit `.env` or expose the API key. The repository ignores `.env` by default.
+`OPENROUTER_MODEL` selects the OpenRouter model, and `LLM_TIMEOUT` sets the request timeout in seconds.
 
 ## Run with Docker
 
@@ -75,7 +78,7 @@ curl -X POST http://localhost:8000/index -H "Content-Type: application/json" -d 
 
 The response reports the number of scanned Python files and indexed chunks.
 
-For a large repository, indexing can take several minutes. The API logs one message per indexing batch, for example `Indexed 256 chunks` followed by the remaining batch. This is normal.
+For a large repository, indexing can take several minutes. The API logs one message per indexing batch, for example `Indexed 256 chunks` followed by the remaining batch. This is normal. Embeddings are prepared before the previous index is replaced, so an embedding failure does not remove the last working index.
 
 ### Ask a question
 

@@ -53,6 +53,49 @@ def index_chunks(chunks: list[dict], repo_url: str = "unknown"):
     collection.add(ids=ids, embeddings=embeddings, documents=texts, metadatas=metadatas)
     print(f"Indexed {len(chunks)} chunks for {repo_url}.")
 
+
+def replace_repo_chunks(chunks: list[dict], repo_url: str, batch_size: int = 256) -> int:
+    """Prepare all embeddings before replacing the previous repository index.
+
+    This prevents an embedding failure from deleting a previously working index.
+    The final writes are still performed in batches to keep memory usage bounded.
+    """
+    if not chunks:
+        clear_repo(repo_url)
+        return 0
+
+    model = get_model()
+    collection = get_collection()
+    embed_inputs = [
+        f"# file: {c['file']}\n# {c['type']}: {c['name']}\n{c['code']}"
+        for c in chunks
+    ]
+    embeddings = model.encode(embed_inputs).tolist()
+    ids = [f"{repo_url}::{c['file']}::{c['name']}::{c['start_line']}" for c in chunks]
+    metadatas = [
+        {
+            "file": c["file"],
+            "name": c["name"],
+            "type": c["type"],
+            "start_line": c["start_line"],
+            "end_line": c["end_line"],
+            "repo": repo_url,
+        }
+        for c in chunks
+    ]
+
+    clear_repo(repo_url)
+    for start in range(0, len(chunks), batch_size):
+        end = start + batch_size
+        collection.add(
+            ids=ids[start:end],
+            embeddings=embeddings[start:end],
+            documents=[c["code"] for c in chunks[start:end]],
+            metadatas=metadatas[start:end],
+        )
+        print(f"Indexed {len(chunks[start:end])} chunks for {repo_url}.")
+    return len(chunks)
+
 def clear_repo(repo_url: str) -> None:
     """Delete all chunks previously indexed for this repo."""
     get_collection().delete(where={"repo": repo_url})

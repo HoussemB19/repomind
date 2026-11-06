@@ -18,15 +18,15 @@ mcp = MCPServer("RepoMind")
 def index_repo(repo_url: str) -> str:
     """Index a public GitHub repository so its code can be queried.
     Call this once per repository, and again after the repository changes,
-    before using ask_repo. Takes about 30 seconds."""
+    before using ask_repo. Indexing time depends on repository size."""
     try:
         from .ingestion import clone_repo, list_useful_files, cleanup
         from .chunking import chunk_python_file
-        from .indexing import index_chunks, clear_repo
+        from .indexing import replace_repo_chunks
     except ImportError:
         from ingestion import clone_repo, list_useful_files, cleanup
         from chunking import chunk_python_file
-        from indexing import index_chunks, clear_repo
+        from indexing import replace_repo_chunks
 
     repo_path = None
     try:
@@ -36,10 +36,7 @@ def index_repo(repo_url: str) -> str:
         all_chunks = []
         for file in files:
             all_chunks.extend(chunk_python_file(file, root=repo_path))
-        clear_repo(repo_url)
-        for i in range(0, len(all_chunks), 256):
-            index_chunks(all_chunks[i:i + 256], repo_url=repo_url)
-        total_chunks = len(all_chunks)
+        total_chunks = replace_repo_chunks(all_chunks, repo_url=repo_url)
 
         return f"Indexed {total_chunks} chunks from {len(files)} files in {repo_url}."
     finally:
